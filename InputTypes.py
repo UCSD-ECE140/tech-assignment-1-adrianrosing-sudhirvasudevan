@@ -1,4 +1,4 @@
-from pydantic import BaseModel, constr
+from pydantic import BaseModel, constr, Field
 
 class NewPlayer(BaseModel):
     lobby_name: constr(min_length=1, max_length=20)
@@ -6,7 +6,7 @@ class NewPlayer(BaseModel):
     player_name: constr(min_length=1, max_length=20)
 
 class Move(BaseModel):
-    move: constr(regex=r'^(UP|DOWN|LEFT|RIGHT)$')
+    move: str = Field(pattern=r'^(UP|DOWN|LEFT|RIGHT)$')
 
 class Start(BaseModel):
-    start: constr(regex=r'^(START)$')
+    start: str = Field(pattern=r'^(START)$')

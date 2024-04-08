@@ -136,7 +136,7 @@ def player_move(client, topic_list, msg_payload):
 
         except Exception as e:
             raise e
-            publish_error_to_lobby(client, lobby_name, e.__str__)
+            publish_error_to_lobby(client, obby_name, e.__str__)
     else:
         publish_error_to_lobby(client, lobby_name, "Lobby name not found.")
 
@@ -158,9 +158,8 @@ def start_game(client, topic_list, msg_payload):
 
                 for player in game.all_players.keys():
                     client.publish(f'games/{lobby_name}/{player}/game_state', json.dumps(game.getGameData(player)))
-
-
                 print(game.map)
+
     elif isinstance(msg_payload, bytes) and msg_payload.decode() == "STOP":
         publish_to_lobby(client, lobby_name, "Game Over: Game has been stopped")
         client.team_dict.pop(lobby_name, None)
