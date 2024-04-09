@@ -55,6 +55,15 @@ def on_message(client, userdata, msg):
     """
 
     print("message: " + msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+    move2 = input('Enter your move: \n')
+    if move2 == "STOP":
+        time.sleep(1)
+        client.publish(f"games/{lobby_name}/start", "STOP")
+        time.sleep(1)
+    else:
+        time.sleep(1)
+        client.publish(f"games/{lobby_name}/{player_1}/move", move2)
+        time.sleep(1)
 
 
 if __name__ == '__main__':
@@ -76,36 +85,38 @@ if __name__ == '__main__':
     client.connect(broker_address, broker_port)
 
     # setting callbacks, use separate functions like above for better visibility
-    client.on_subscribe = on_subscribe  # Can comment out to not print when subscribing to new topics
+    # client.on_subscribe = on_subscribe  # Can comment out to not print when subscribing to new topics
     client.on_message = on_message
-    client.on_publish = on_publish  # Can comment out to not print when publishing to topics
+    # client.on_publish = on_publish  # Can comment out to not print when publishing to topics
 
     lobby_name = "TestLobby"
     player_1 = "Player1"
-    player_2 = "Player2"
-    player_3 = "Player3"
+    # player_2 = "Player2"
+    # player_3 = "Player3"
 
     client.subscribe(f"games/{lobby_name}/lobby")
     client.subscribe(f'games/{lobby_name}/+/game_state')
     client.subscribe(f'games/{lobby_name}/scores')
 
+    time.sleep(1)
+    # First implement player 1 for one user_controllable agent
     client.publish("new_game", json.dumps({'lobby_name': lobby_name,
                                            'team_name': 'ATeam',
                                            'player_name': player_1}))
 
-    client.publish("new_game", json.dumps({'lobby_name': lobby_name,
-                                           'team_name': 'BTeam',
-                                           'player_name': player_2}))
-
-    client.publish("new_game", json.dumps({'lobby_name': lobby_name,
-                                           'team_name': 'BTeam',
-                                           'player_name': player_3}))
+    # client.publish("new_game", json.dumps({'lobby_name': lobby_name,
+    #                                        'team_name': 'BTeam',
+    #                                        'player_name': player_2}))
+    #
+    # client.publish("new_game", json.dumps({'lobby_name': lobby_name,
+    #                                        'team_name': 'BTeam',
+    #                                        'player_name': player_3}))
 
     time.sleep(1)  # Wait a second to resolve game start
-    client.publish(f"games/{lobby_name}/start", "START")
-    client.publish(f"games/{lobby_name}/{player_1}/move", "UP")
-    client.publish(f"games/{lobby_name}/{player_2}/move", "DOWN")
-    client.publish(f"games/{lobby_name}/{player_3}/move", "DOWN")
-    client.publish(f"games/{lobby_name}/start", "STOP")
 
+    client.publish(f"games/{lobby_name}/start", "START")
+    time.sleep(1)
+    move1 = input('Enter your move: \n')
+    client.publish(f"games/{lobby_name}/{player_1}/move", move1)
+    time.sleep(1)
     client.loop_forever()

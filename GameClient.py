@@ -6,6 +6,7 @@ from collections import OrderedDict
 import paho.mqtt.client as paho
 from paho import mqtt
 from dotenv import load_dotenv
+import time
 
 from InputTypes import NewPlayer
 from game import Game
@@ -122,7 +123,7 @@ def player_move(client, topic_list, msg_payload):
                 # Publish player states after all movement is resolved
                 for player, _ in client.move_dict[lobby_name].values():
                     client.publish(f'games/{lobby_name}/{player}/game_state', json.dumps(game.getGameData(player)))
-
+                    time.sleep(1)
                 # Clear move list
                 client.move_dict[lobby_name].clear()
                 print(game.map)
