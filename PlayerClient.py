@@ -82,7 +82,10 @@ if __name__ == '__main__':
     username = os.environ.get('USER_NAME')
     password = os.environ.get('PASSWORD')
 
-    client = paho.Client(callback_api_version=paho.CallbackAPIVersion.VERSION1, client_id="Player1",
+    
+    player_1 = input("Please input the Player Name: ")
+
+    client = paho.Client(callback_api_version=paho.CallbackAPIVersion.VERSION1, client_id=f"{player_1}",
                          userdata=None, protocol=paho.MQTTv5)
 
     # enable TLS for secure connection
@@ -99,8 +102,8 @@ if __name__ == '__main__':
 
     client.loop_start()
 
-    lobby_name = "TestLobby"
-    player_1 = "Player1"
+    lobby_name = input("Please input the Lobby Name: ")
+    team_name = input("Please input the team name.")
 
     client.subscribe(f"games/+/lobby")
     client.subscribe(f'games/{lobby_name}/+/game_state')
@@ -111,7 +114,7 @@ if __name__ == '__main__':
 
 
     client.publish("new_game", json.dumps({'lobby_name': lobby_name,
-                                           'team_name': 'ATeam',
+                                           'team_name': team_name,
                                            'player_name': player_1}))
     client.publish(f"games/{lobby_name}/start", "START")
 
