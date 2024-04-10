@@ -7,6 +7,8 @@ import paho.mqtt.client as paho
 from paho import mqtt
 import time
 
+player_1 = ""
+team_name = ""
 
 # setting callbacks for different events to see if it works, print the message etc.
 def on_connect(client, userdata, flags, rc, properties=None):
@@ -54,7 +56,8 @@ def on_message(client, userdata, msg):
         :param userdata: userdata is set when initiating the client, here it is userdata=None
         :param msg: the message with topic and payload
     """
-
+    if(player_1 not in msg.topic and "scores" not in msg.topic):  #Prevents other player's info from showing.
+        return
     print("message: " + msg.topic + " " + str(msg.qos))
     try:
         fullPlayDetails = json.loads((msg.payload).decode('utf-8'))
@@ -75,6 +78,7 @@ def on_message(client, userdata, msg):
 
 
 if __name__ == '__main__':
+    print("ONLY SHOWING YOUR OWN INFORMATION.")
     load_dotenv(dotenv_path='./credentials.env')
 
     broker_address = os.environ.get('BROKER_ADDRESS')
@@ -100,10 +104,10 @@ if __name__ == '__main__':
     client.on_message = on_message
     client.on_publish = on_publish  # Can comment out to not print when publishing to topics
 
-    client.loop_start()
-
     lobby_name = input("Please input the Lobby Name: ")
-    team_name = input("Please input the team name.")
+    team_name = input("Please input the team name: ")
+
+    client.loop_start()
 
     client.subscribe(f"games/+/lobby")
     client.subscribe(f'games/{lobby_name}/+/game_state')
