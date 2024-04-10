@@ -81,7 +81,7 @@ def on_message(client, userdata, msg):
     elif msg.topic == "random/numbers2":
         input2vals.append(int(msg.payload))
 
-    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload) + "\n\n")
+    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload) + "\n")
 
     if len(input2vals) == 10 and len(input1vals) == 10:
         print(input2vals)

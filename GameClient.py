@@ -34,7 +34,7 @@ def on_publish(client, userdata, mid, properties=None):
         :param mid: variable returned from the corresponding publish() call, to allow outgoing messages to be tracked
         :param properties: can be used in MQTTv5, but is optional
     """
-    print("mid: " + str(mid))
+    print("On Publish: mid: " + str(mid))
 
 
 # print which topic was subscribed to
@@ -112,6 +112,8 @@ def player_move(client, topic_list, msg_payload):
         try:
             new_move = msg_payload.decode()
 
+            print("TRYING TO MOVE.")
+
             client.move_dict[lobby_name][player_name] = (player_name, move_to_Moveset[new_move])
             game: Game = client.game_dict[lobby_name]
 
@@ -122,12 +124,13 @@ def player_move(client, topic_list, msg_payload):
 
                 # Publish player states after all movement is resolved
                 for player, _ in client.move_dict[lobby_name].values():
-                    client.publish(f'games/{lobby_name}/{player}/game_state', json.dumps(game.getGameData(player)))
+                    client.publish(f'games/{lobby_name}/{player}/game_state', json.dumps(game.getGameData(player)), qos=2)
                     time.sleep(1)
                 # Clear move list
                 client.move_dict[lobby_name].clear()
                 print(game.map)
-                client.publish(f'games/{lobby_name}/scores', json.dumps(game.getScores()))
+                client.publish(f'games/{lobby_name}/scores', json.dumps(game.getScores()), 2)
+                print(game.getScores())
                 if game.gameOver():
                     # Publish game over, remove game
                     publish_to_lobby(client, lobby_name, "Game Over: All coins have been collected")
