@@ -51,8 +51,8 @@ def on_publish(client, userdata, mid, properties=None):
         :param mid: variable returned from the corresponding publish() call, to allow outgoing messages to be tracked
         :param properties: can be used in MQTTv5, but is optional
     """
-    print("mid: " + str(mid))
-
+    #print("mid: " + str(mid))
+    return
 
 # print which topic was subscribed to
 def on_subscribe(client, userdata, mid, granted_qos, properties=None):
@@ -81,7 +81,7 @@ def on_message(client, userdata, msg):
     elif msg.topic == "random/numbers2":
         input2vals.append(int(msg.payload))
 
-    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
+    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload) + "\n\n")
 
     if len(input2vals) == 10 and len(input1vals) == 10:
         print(input2vals)
@@ -108,9 +108,10 @@ subscriber.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
 # set username and password
 subscriber.username_pw_set("ECE140@UCSD", "Password1")
 # connect to HiveMQ Cloud on port 8883 (default for MQTT)
-subscriber.connect("6d703c998efb4e069ce889b7ab2af062.s1.eu.hivemq.cloud", 8883)
+subscriber.connect("afc8d80bed6e426a8262444969098e89.s1.eu.hivemq.cloud", 8883)
 
 # setting callbacks, use separate functions like above for better visibility
+print("\n\n Setting Up: \n")
 subscriber.on_subscribe = on_subscribe
 subscriber.on_message = on_message
 subscriber.on_publish = on_publish
@@ -128,7 +129,7 @@ outputOne.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
 # set username and password
 outputOne.username_pw_set("ECE140@UCSD", "Password1")
 # connect to HiveMQ Cloud on port 8883 (default for MQTT)
-outputOne.connect("6d703c998efb4e069ce889b7ab2af062.s1.eu.hivemq.cloud", 8883)
+outputOne.connect("afc8d80bed6e426a8262444969098e89.s1.eu.hivemq.cloud", 8883)
 
 # setting callbacks, use separate functions like above for better visibility
 outputOne.on_message = on_message
@@ -144,7 +145,7 @@ outputTwo.tls_set(tls_version=mqtt.client.ssl.PROTOCOL_TLS)
 # set username and password
 outputTwo.username_pw_set("ECE140@UCSD", "Password1")
 # connect to HiveMQ Cloud on port 8883 (default for MQTT)
-outputTwo.connect("6d703c998efb4e069ce889b7ab2af062.s1.eu.hivemq.cloud", 8883)
+outputTwo.connect("afc8d80bed6e426a8262444969098e89.s1.eu.hivemq.cloud", 8883)
 
 # setting callbacks, use separate functions like above for better visibility
 outputTwo.on_message = on_message
@@ -154,15 +155,14 @@ outputTwo.on_publish = on_publish
 outputOne.loop_start()
 outputTwo.loop_start()
 
+print("\n\n Subscribing: \n")
 subscriber.subscribe('random/#', qos=1)
 
 for i in range(1, 11):
     # Publishing Random Number
-    time.sleep(1)
     outputOne.publish('random/numbers1', payload=(int)(100 * random.random()), qos=1)
-    time.sleep(1)
     outputTwo.publish('random/numbers2', payload=(int)(100 * random.random()), qos=1)
-    time.sleep(1)
+    time.sleep(3)
 
 # loop_forever for simplicity, here you need to stop the loop manually
 outputOne.loop_stop()
