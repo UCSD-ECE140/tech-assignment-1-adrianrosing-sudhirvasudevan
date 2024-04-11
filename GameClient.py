@@ -133,14 +133,15 @@ def player_move(client, topic_list, msg_payload):
                 print(game.getScores())
                 if game.gameOver():
                     # Publish game over, remove game
-                    publish_to_lobby(client, lobby_name, "Game Over: All coins have been collected")
+                    # publish_to_lobby(client, lobby_name, "Game Over: All coins have been collected")
+                    client.publish(f"games/{lobby_name}/start", "STOP")
                     client.team_dict.pop(lobby_name)
                     client.move_dict.pop(lobby_name)
                     client.game_dict.pop(lobby_name)
 
         except Exception as e:
+            publish_error_to_lobby(client, lobby_name, e.__str__)
             raise e
-            publish_error_to_lobby(client, obby_name, e.__str__)
     else:
         publish_error_to_lobby(client, lobby_name, "Lobby name not found.")
 
