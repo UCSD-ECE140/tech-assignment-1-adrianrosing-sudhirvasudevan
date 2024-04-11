@@ -106,9 +106,13 @@ def on_message(client, userdata, msg):
     """
     try:
         global start_game
+        global endGame
         if ("START" in msg.payload):
             start_game = True
             return
+        if("STOP" in msg.payload):
+            print("GAME OVER!")
+            endGame = True
     except:
         print("Line 69 Running.")
 
@@ -150,6 +154,8 @@ def on_message(client, userdata, msg):
     #     time.sleep(1)
 
 def create_next_move():
+    if(endGame == True):
+        return "STOP"
     possibleMoves = ["UP", "DOWN", "RIGHT", "LEFT"]
 
     global currentCoins
@@ -157,11 +163,8 @@ def create_next_move():
     global graph
     
     if not currentPos:
-        print("No Current Position Given.")
+        print("No Current Position Given.") 
         return random.choice(possibleMoves)
-
-    
-    print("Returning Random Move Which Doesn't Go Towards Wall")
 
     valid_moves = []
     print("Current Pos: ", currentPos)
@@ -171,11 +174,11 @@ def create_next_move():
         valid_moves.append("UP")
 
         if graph[currentPos[0] - 1][currentPos[1]] < 2:  #If player has not already been there, adds additional weighting.
-            valid_moves.append("UP")
-            valid_moves.append("UP")
+            for i in range(5):
+                valid_moves.append("UP")
 
         if graph[currentPos[0] - 1][currentPos[1]] == 1:  #If coin is nearby:
-            for i in range(5):
+            for i in range(40):
                 valid_moves.append("UP")
 
     # Check if moving DOWN is valid
@@ -183,11 +186,11 @@ def create_next_move():
         valid_moves.append("DOWN")
 
         if graph[currentPos[0] + 1][currentPos[1]] < 2:
-            valid_moves.append("DOWN")
-            valid_moves.append("DOWN")
+            for i in range(5):
+                valid_moves.append("DOWN")
 
         if graph[currentPos[0] + 1][currentPos[1]] == 1:  #If coin is nearby:
-            for i in range(5):
+            for i in range(40):
                 valid_moves.append("DOWN")
 
     # Check if moving LEFT is valid
@@ -195,11 +198,11 @@ def create_next_move():
         valid_moves.append("LEFT")
 
         if graph[currentPos[0]][currentPos[1] - 1] < 2:
-            valid_moves.append("LEFT")
-            valid_moves.append("LEFT")
+            for i in range(5):
+                valid_moves.append("LEFT")
 
         if graph[currentPos[0]][currentPos[1] - 1] == 1:  #If coin is nearby:
-            for i in range(5):
+            for i in range(40):
                 valid_moves.append("LEFT")
 
     # Check if moving RIGHT is valid
@@ -207,14 +210,19 @@ def create_next_move():
         valid_moves.append("RIGHT")
 
         if graph[currentPos[0]][currentPos[1] + 1] < 2:
-            valid_moves.append("RIGHT")
-            valid_moves.append("RIGHT")
-
-        if graph[currentPos[0]][currentPos[1] + 1] == 1:  #If coin is nearby:
             for i in range(5):
                 valid_moves.append("RIGHT")
 
-    print(valid_moves)
+        if graph[currentPos[0]][currentPos[1] + 1] == 1:  #If coin is nearby:
+            for i in range(40):
+                valid_moves.append("RIGHT")
+
+    #print(valid_moves)
+
+    ## A FEW THINGS WE COULD ADD TO MAKE THIS RUN BETTER:
+    # 1) Tend to walk down paths that are older (i.e. smaller numbers) - (this might make it worse)
+    # 2) Drastically decrease the probability of going left then right. 
+    # 3) Clear coins which have been consumed by other players. This would be done by removing the 1s in the other function.
 
     return random.choice(valid_moves)
 
@@ -261,7 +269,7 @@ if __name__ == '__main__':
 
     while start_game != "START":  
         client.subscribe(f'games/{lobby_name}/+/game_state')
-        time.sleep(1)
+        time.sleep(5)
 
     client.publish(f"games/{lobby_name}/start", "START")
 
@@ -285,7 +293,7 @@ if __name__ == '__main__':
 
         wordInput = create_next_move()
         print("Nex Move: ", wordInput)
-        time.sleep(1)
+        time.sleep(.5)
         if (wordInput in ["UP", "DOWN", "RIGHT", "LEFT"]):
             client.publish(f"games/{lobby_name}/{player_1}/move", wordInput)
             time.sleep(1)
