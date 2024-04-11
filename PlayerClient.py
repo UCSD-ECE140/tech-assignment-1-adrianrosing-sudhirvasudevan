@@ -3,13 +3,60 @@ import json
 from dotenv import load_dotenv
 
 import threading
+from pathfinding.core.grid import Grid
+from pathfinding.finder.a_star import AStarFinder
+
 import paho.mqtt.client as paho
 from paho import mqtt
 import time
+import random
 
 player_1 = ""
 team_name = ""
 endGame = False
+
+start_game = False
+
+currentPos = []
+currentWalls = []
+currentCoins = []
+currentMovement = 2
+
+continueWithNextMoveFlag = False
+
+graph = [[0 for _ in range(10)] for _ in range(10)]
+
+#Builds a small graph of what the player is currently seeing.
+def build_graph():
+
+    print("Building Graph: ")
+
+    global graph
+    global currentPos
+    global currentWalls
+    global currentCoins
+
+    global currentMovement
+
+    for wall in currentWalls:
+        x, y = wall
+        graph[x][y] = -1  # wall cells are -1
+    for coin in currentCoins:
+        x, y = coin
+        graph[x][y] = 1  # coin cells as 1
+    x, y = currentPos
+    graph[x][y] = currentMovement # set current position to 2.
+    currentMovement += 1
+
+    currentCoins = []
+    currentWalls = []
+
+    #Debugging.
+    for i in graph:
+        print(i)
+
+    global continueWithNextMoveFlag
+    continueWithNextMoveFlag = True
 
 # setting callbacks for different events to see if it works, print the message etc.
 def on_connect(client, userdata, flags, rc, properties=None):
@@ -57,14 +104,38 @@ def on_message(client, userdata, msg):
         :param userdata: userdata is set when initiating the client, here it is userdata=None
         :param msg: the message with topic and payload
     """
+    try:
+        global start_game
+        if ("START" in msg.payload):
+            start_game = True
+            return
+    except:
+        print("Line 69 Running.")
 
-    if (player_1 not in msg.topic and "scores" not in msg.topic):  # Prevents other player's info from showing.
+
+    if (player_1 not in msg.topic and "scores" not in msg.topic and "stop" not in msg.topic):  # Prevents other player's info from showing.
         return
     print("message: " + msg.topic + " " + str(msg.qos))
     try:
         fullPlayDetails = json.loads(msg.payload.decode('utf-8'))
+    
         for key, value in fullPlayDetails.items():
+
+            if("game_state" in msg.topic):
+                if("coin" in key):
+                    global currentCoins
+                    for i in value:
+                        currentCoins.append(i)
+                if("walls" in key):
+                    global currentWalls
+                    currentWalls = value
+                if("currentPosition" in key):
+                    global currentPos
+                    currentPos = value
+
             print(f"{key}: {value}")
+        if("game_state" in msg.topic):
+            build_graph()
     except:
         print(msg.payload)
 
@@ -77,6 +148,75 @@ def on_message(client, userdata, msg):
     #     time.sleep(1)
     #     client.publish(f"games/{lobby_name}/{player_1}/move", move2)
     #     time.sleep(1)
+
+def create_next_move():
+    possibleMoves = ["UP", "DOWN", "RIGHT", "LEFT"]
+
+    global currentCoins
+    global currentPos
+    global graph
+    
+    if not currentPos:
+        print("No Current Position Given.")
+        return random.choice(possibleMoves)
+
+    
+    print("Returning Random Move Which Doesn't Go Towards Wall")
+
+    valid_moves = []
+    print("Current Pos: ", currentPos)
+
+    # Check if moving UP is valid
+    if currentPos[0] > 0 and graph[currentPos[0] - 1][currentPos[1]] != -1:
+        valid_moves.append("UP")
+
+        if graph[currentPos[0] - 1][currentPos[1]] < 2:  #If player has not already been there, adds additional weighting.
+            valid_moves.append("UP")
+            valid_moves.append("UP")
+
+        if graph[currentPos[0] - 1][currentPos[1]] == 1:  #If coin is nearby:
+            for i in range(5):
+                valid_moves.append("UP")
+
+    # Check if moving DOWN is valid
+    if currentPos[0] < len(graph) - 1 and graph[currentPos[0] + 1][currentPos[1]] != -1:
+        valid_moves.append("DOWN")
+
+        if graph[currentPos[0] + 1][currentPos[1]] < 2:
+            valid_moves.append("DOWN")
+            valid_moves.append("DOWN")
+
+        if graph[currentPos[0] + 1][currentPos[1]] == 1:  #If coin is nearby:
+            for i in range(5):
+                valid_moves.append("DOWN")
+
+    # Check if moving LEFT is valid
+    if currentPos[1] > 0 and graph[currentPos[0]][currentPos[1] - 1] != -1:
+        valid_moves.append("LEFT")
+
+        if graph[currentPos[0]][currentPos[1] - 1] < 2:
+            valid_moves.append("LEFT")
+            valid_moves.append("LEFT")
+
+        if graph[currentPos[0]][currentPos[1] - 1] == 1:  #If coin is nearby:
+            for i in range(5):
+                valid_moves.append("LEFT")
+
+    # Check if moving RIGHT is valid
+    if currentPos[1] < len(graph[0]) - 1 and graph[currentPos[0]][currentPos[1] + 1] != -1:
+        valid_moves.append("RIGHT")
+
+        if graph[currentPos[0]][currentPos[1] + 1] < 2:
+            valid_moves.append("RIGHT")
+            valid_moves.append("RIGHT")
+
+        if graph[currentPos[0]][currentPos[1] + 1] == 1:  #If coin is nearby:
+            for i in range(5):
+                valid_moves.append("RIGHT")
+
+    print(valid_moves)
+
+    return random.choice(valid_moves)
 
 
 if __name__ == '__main__':
@@ -105,7 +245,7 @@ if __name__ == '__main__':
     # client.on_publish = on_publish  # Can comment out to not print when publishing to topics
 
     lobby_name = input("Please input the Lobby Name: ")
-    team_name = input("Please input the team name:")
+    team_name = input("Please input the Team Name: ")
 
     client.subscribe("games/+/lobby")
     client.subscribe(f'games/{lobby_name}/+/game_state')
@@ -115,9 +255,12 @@ if __name__ == '__main__':
     client.publish("new_game", json.dumps({'lobby_name': lobby_name,
                                            'team_name': team_name,
                                            'player_name': player_1}))
+    
     # should we start game
-    start_game = input("Type START once all players have joined")
-    while start_game != "START":
+    start_game = input("Type START in order to access the game.\n")
+
+    while start_game != "START":  
+        client.subscribe(f'games/{lobby_name}/+/game_state')
         time.sleep(1)
 
     client.publish(f"games/{lobby_name}/start", "START")
@@ -134,12 +277,22 @@ if __name__ == '__main__':
     #                                        'player_name': player_3}))
 
     while True:
-        wordInput = input('Enter your move: \n')
+        #wordInput = input('Enter your move: \n')
+        while not continueWithNextMoveFlag:
+            time.sleep(.5)
+        
+        continueWithNextMoveFlag = False
+
+        wordInput = create_next_move()
+        print("Nex Move: ", wordInput)
+        time.sleep(1)
         if (wordInput in ["UP", "DOWN", "RIGHT", "LEFT"]):
             client.publish(f"games/{lobby_name}/{player_1}/move", wordInput)
             time.sleep(1)
         elif wordInput == "STOP":
             client.publish(f"games/{lobby_name}/start", "STOP")
             break
+        else:
+            print("ERROR", wordInput)
 
 
