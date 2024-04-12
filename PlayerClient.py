@@ -2,14 +2,11 @@ import os
 import json
 from dotenv import load_dotenv
 
-import threading
-from pathfinding.core.grid import Grid
-from pathfinding.finder.a_star import AStarFinder
-
 import paho.mqtt.client as paho
 from paho import mqtt
 import time
 import random
+import counter
 
 player_1 = ""
 team_name = ""
@@ -26,10 +23,10 @@ continueWithNextMoveFlag = False
 
 graph = [[0 for _ in range(10)] for _ in range(10)]
 
-#Builds a small graph of what the player is currently seeing.
-def build_graph():
 
-    print("Building Graph: ")
+# Builds a small graph of what the player is currently seeing.
+def build_graph():
+    # print("Building Graph: ")
 
     global graph
     global currentPos
@@ -45,18 +42,19 @@ def build_graph():
         x, y = coin
         graph[x][y] = 1  # coin cells as 1
     x, y = currentPos
-    graph[x][y] = currentMovement # set current position to 2.
+    graph[x][y] = currentMovement  # set current position to 2.
     currentMovement += 1
 
     currentCoins = []
     currentWalls = []
 
-    #Debugging.
-    for i in graph:
-        print(i)
+    # Debugging.
+    # for i in graph:
+    #     print(i)
 
     global continueWithNextMoveFlag
     continueWithNextMoveFlag = True
+
 
 # setting callbacks for different events to see if it works, print the message etc.
 def on_connect(client, userdata, flags, rc, properties=None):
@@ -107,63 +105,57 @@ def on_message(client, userdata, msg):
     try:
         global start_game
         global endGame
-        if ("START" in msg.payload):
+        if "START" in msg.payload.decode('utf-8'):
             start_game = True
             return
-        if("STOP" in msg.payload):
-            print("GAME OVER!")
+        if "stop" in msg.payload.decode('utf-8'):
+            print(msg.payload.decode('utf-8'))
             endGame = True
+        # if team_name in msg.payload.decode('utf-8'):
+        #     # do nothing
     except:
+        print(msg.payload)
         print("Line 69 Running.")
 
-
-    if (player_1 not in msg.topic and "scores" not in msg.topic and "stop" not in msg.topic):  # Prevents other player's info from showing.
+    if (
+            player_1 not in msg.topic and "scores" not in msg.topic and "stop" not in msg.topic):  # Prevents other player's info from showing.
         return
     print("message: " + msg.topic + " " + str(msg.qos))
     try:
         fullPlayDetails = json.loads(msg.payload.decode('utf-8'))
-    
+
         for key, value in fullPlayDetails.items():
 
-            if("game_state" in msg.topic):
-                if("coin" in key):
+            if ("game_state" in msg.topic):
+                if ("coin" in key):
                     global currentCoins
                     for i in value:
                         currentCoins.append(i)
-                if("walls" in key):
+                if ("walls" in key):
                     global currentWalls
                     currentWalls = value
-                if("currentPosition" in key):
+                if ("currentPosition" in key):
                     global currentPos
                     currentPos = value
 
             print(f"{key}: {value}")
-        if("game_state" in msg.topic):
+        if ("game_state" in msg.topic):
             build_graph()
     except:
         print(msg.payload)
 
-    # move2 = input('\nEnter your move: \n')
-    # if move2 == "STOP":
-    #     time.sleep(1)
-    #     client.publish(f"games/{lobby_name}/start", "STOP")
-    #     time.sleep(1)
-    # else:
-    #     time.sleep(1)
-    #     client.publish(f"games/{lobby_name}/{player_1}/move", move2)
-    #     time.sleep(1)
 
 def create_next_move():
-    if(endGame == True):
+    if (endGame == True):
         return "STOP"
     possibleMoves = ["UP", "DOWN", "RIGHT", "LEFT"]
 
     global currentCoins
     global currentPos
     global graph
-    
+
     if not currentPos:
-        print("No Current Position Given.") 
+        print("No Current Position Given.")
         return random.choice(possibleMoves)
 
     valid_moves = []
@@ -173,11 +165,12 @@ def create_next_move():
     if currentPos[0] > 0 and graph[currentPos[0] - 1][currentPos[1]] != -1:
         valid_moves.append("UP")
 
-        if graph[currentPos[0] - 1][currentPos[1]] < 2:  #If player has not already been there, adds additional weighting.
+        if graph[currentPos[0] - 1][
+            currentPos[1]] < 2:  # If player has not already been there, adds additional weighting.
             for i in range(5):
                 valid_moves.append("UP")
 
-        if graph[currentPos[0] - 1][currentPos[1]] == 1:  #If coin is nearby:
+        if graph[currentPos[0] - 1][currentPos[1]] == 1:  # If coin is nearby:
             for i in range(40):
                 valid_moves.append("UP")
 
@@ -189,7 +182,7 @@ def create_next_move():
             for i in range(5):
                 valid_moves.append("DOWN")
 
-        if graph[currentPos[0] + 1][currentPos[1]] == 1:  #If coin is nearby:
+        if graph[currentPos[0] + 1][currentPos[1]] == 1:  # If coin is nearby:
             for i in range(40):
                 valid_moves.append("DOWN")
 
@@ -201,7 +194,7 @@ def create_next_move():
             for i in range(5):
                 valid_moves.append("LEFT")
 
-        if graph[currentPos[0]][currentPos[1] - 1] == 1:  #If coin is nearby:
+        if graph[currentPos[0]][currentPos[1] - 1] == 1:  # If coin is nearby:
             for i in range(40):
                 valid_moves.append("LEFT")
 
@@ -213,11 +206,11 @@ def create_next_move():
             for i in range(5):
                 valid_moves.append("RIGHT")
 
-        if graph[currentPos[0]][currentPos[1] + 1] == 1:  #If coin is nearby:
+        if graph[currentPos[0]][currentPos[1] + 1] == 1:  # If coin is nearby:
             for i in range(40):
                 valid_moves.append("RIGHT")
 
-    #print(valid_moves)
+    # print(valid_moves)
 
     ## A FEW THINGS WE COULD ADD TO MAKE THIS RUN BETTER:
     # 1) Tend to walk down paths that are older (i.e. smaller numbers) - (this might make it worse)
@@ -255,21 +248,26 @@ if __name__ == '__main__':
     lobby_name = input("Please input the Lobby Name: ")
     team_name = input("Please input the Team Name: ")
 
-    client.subscribe("games/+/lobby")
+    client.subscribe(f"games/{lobby_name}/lobby")
     client.subscribe(f'games/{lobby_name}/+/game_state')
     client.subscribe(f'games/+/scores')
-    # player_2 = "Player2"
-    # player_3 = "Player3"
+
     client.publish("new_game", json.dumps({'lobby_name': lobby_name,
                                            'team_name': team_name,
                                            'player_name': player_1}))
-    
+    counter.add()
+
     # should we start game
     start_game = input("Type START in order to access the game.\n")
 
-    while start_game != "START":  
+    while start_game != "START":
         client.subscribe(f'games/{lobby_name}/+/game_state')
-        time.sleep(5)
+        time.sleep(2)
+
+    counter.subtract()
+
+    while counter.get() != 0:
+        time.sleep(1)
 
     client.publish(f"games/{lobby_name}/start", "START")
 
@@ -285,14 +283,14 @@ if __name__ == '__main__':
     #                                        'player_name': player_3}))
 
     while True:
-        #wordInput = input('Enter your move: \n')
+        # wordInput = input('Enter your move: \n')
         while not continueWithNextMoveFlag:
             time.sleep(.5)
-        
+
         continueWithNextMoveFlag = False
 
         wordInput = create_next_move()
-        print("Nex Move: ", wordInput)
+        # print("Next Move: ", wordInput)
         time.sleep(.5)
         if (wordInput in ["UP", "DOWN", "RIGHT", "LEFT"]):
             client.publish(f"games/{lobby_name}/{player_1}/move", wordInput)
@@ -302,5 +300,3 @@ if __name__ == '__main__':
             break
         else:
             print("ERROR", wordInput)
-
-
