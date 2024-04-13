@@ -273,15 +273,6 @@ if __name__ == '__main__':
 
     client.loop_start()
 
-    # First implement player 1 for one user_controllable agent
-    # client.publish("new_game", json.dumps({'lobby_name': lobby_name,
-    #                                        'team_name': 'BTeam',
-    #                                        'player_name': player_2}))
-    #
-    # client.publish("new_game", json.dumps({'lobby_name': lobby_name,
-    #                                        'team_name': 'BTeam',
-    #                                        'player_name': player_3}))
-
     while True:
         # wordInput = input('Enter your move: \n')
         while not continueWithNextMoveFlag:
